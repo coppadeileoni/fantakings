@@ -210,9 +210,17 @@ export default function CreateSquadPage() {
         );
         setStatus("success");
       } catch (error) {
-        console.error(error);
-        setFeedback("Errore durante il salvataggio della squadra.");
-        setStatus("error");
+        if (
+          error instanceof Error &&
+          error.message === "Email già registrata"
+        ) {
+          setFeedback("Una squadra con questa email è già stata registrata.");
+          setStatus("error");
+          return;
+        } else {
+          setFeedback("Errore durante il salvataggio della squadra.");
+          setStatus("error");
+        }
       }
     });
   };

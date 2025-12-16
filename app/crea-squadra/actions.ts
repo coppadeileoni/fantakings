@@ -7,20 +7,12 @@ import { GoogleSpreadsheet } from "google-spreadsheet";
 const SPREADSHEET_ID = "1uVO7wL5QlLj7fL-ZyxYoIsIvczZB52MGBw6m2yDyskA";
 const SHEET_NAME = "risposte";
 
-const ROLE_LABELS: Record<Member["role"], string> = {
-    player: "Giocatore",
-    goalkeeper: "Portiere",
-    pres: "Presidente",
-};
-
 export type PersistSquadInput = {
     squadName: string;
     fullName: string;
     email: string;
     members: Member[];
 };
-
-
 
 const serviceAccount = new JWT({
     email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -63,6 +55,18 @@ export async function persistSquad({
 
     if (!sheet) {
         throw new Error(`Worksheet "${SHEET_NAME}" not found.`);
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingRows = await sheet.getRows<{ email?: string }>();
+
+    const emailAlreadyTaken = existingRows.some((row) => {
+        return row.get("email").trim().toLowerCase() === normalizedEmail;
+    },
+    );
+
+    if (emailAlreadyTaken) {
+        throw new Error("Email già registrata");
     }
 
 
