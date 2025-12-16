@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "FantaKings",
-  description: "Crea la tua squadra di fantacalcio e sfida i tuoi amici!",
+  description: "Il fantacalcio della Coppa dei Leoni - Christmas edition",
 };
 
 export default function RootLayout({
