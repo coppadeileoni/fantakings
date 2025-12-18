@@ -1,7 +1,7 @@
 "use server";
 
 import { JWT } from "google-auth-library";
-import { Member } from "../utils/constants";
+import { Member } from "../utils/types";
 import { GoogleSpreadsheet } from "google-spreadsheet";
 
 const SPREADSHEET_ID = "1uVO7wL5QlLj7fL-ZyxYoIsIvczZB52MGBw6m2yDyskA";
