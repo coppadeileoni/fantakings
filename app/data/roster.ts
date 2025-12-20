@@ -269,7 +269,7 @@ export const FANTA_ROSTER: FantaRoster[] = [
         fullname: "Aledez",
         name: "Zozzon10",
         players: [
-            { member: "Mauro Caruso", team: "Chinesis Gym & Al Gaia" },
+            { member: "Luigi Spataro", team: "Chinesis Gym & Al Gaia" },
             { member: "Cristian Valenti", team: "Zozzons7" },
             { member: "Raffaele Ipsale", team: "Roxy Bar" },
             { member: "Giuseppe La Rocca", team: "Ludopathikos" },
