@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { MATCHES } from "../data/matches";
 import { TEAMS } from "../data/teams";
 import { RoleBadge } from "../components/role-badge";
@@ -182,6 +182,7 @@ export default function TorneoClient({
   const [expandedMatchIds, setExpandedMatchIds] = useState<
     Record<string, boolean>
   >({});
+  const matchRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
   const eventsByMatch = initialEventsByMatch;
 
@@ -313,6 +314,44 @@ export default function TorneoClient({
     [matchesWithEvents]
   );
 
+  const targetMatchId = useMemo(() => {
+    if (matchesWithEvents.length === 0) {
+      return null;
+    }
+
+    const liveMatches = matchesWithEvents
+      .filter((match) => isMatchLive(match.events))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+    if (liveMatches.length > 0) {
+      return liveMatches[0].id;
+    }
+
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now();
+    let closestMatch: Match | null = null;
+    let minDelta = Number.POSITIVE_INFINITY;
+
+    matchesWithEvents.forEach((match) => {
+      const delta = Math.abs(match.date.getTime() - now);
+      if (delta < minDelta) {
+        minDelta = delta;
+        closestMatch = match;
+      }
+    });
+
+    return closestMatch !== null ? (closestMatch as Match).id : null;
+  }, [matchesWithEvents]);
+
+  useEffect(() => {
+    if (activeTab !== "results" || !targetMatchId) {
+      return;
+    }
+    const node = matchRefs.current[targetMatchId];
+    if (node) {
+      node.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [activeTab, targetMatchId]);
+
   return (
     <main className="flex min-h-screen flex-col items-center px-6 py-16 font-sans">
       <div className="flex w-full max-w-4xl flex-col space-y-10">
@@ -414,6 +453,9 @@ export default function TorneoClient({
                                 role="button"
                                 tabIndex={0}
                                 aria-expanded={isExpanded}
+                                ref={(node) => {
+                                  matchRefs.current[match.id] = node;
+                                }}
                               >
                                 <td className="px-4 py-3 align-middle text-sm font-semibold text-zinc-600">
                                   <div className="flex flex-col items-start gap-1 text-left md:items-center">
