@@ -159,6 +159,15 @@ function describeEvent(event: MatchEvent) {
   }
 }
 
+function isMatchLive(events?: MatchEvent[]) {
+  if (!events || events.length === 0) {
+    return false;
+  }
+  const hasStartEvent = events.some((event) => event.type === "start");
+  const hasEndEvent = events.some((event) => event.type === "end");
+  return hasStartEvent && !hasEndEvent;
+}
+
 function formatBonus(total: number) {
   if (total > 0) {
     return `+${total}`;
@@ -280,6 +289,25 @@ export default function TorneoClient({
       }));
   }, [matchesWithEvents]);
 
+  const liveScoresByTeam = useMemo(() => {
+    const map = new Map<string, { goalsFor: number; goalsAgainst: number }>();
+    matchesWithEvents.forEach((match) => {
+      const result = calculateResult(match);
+      if (!result?.isInProgress) {
+        return;
+      }
+      map.set(match.homeTeam, {
+        goalsFor: result.homeScore,
+        goalsAgainst: result.awayScore,
+      });
+      map.set(match.awayTeam, {
+        goalsFor: result.awayScore,
+        goalsAgainst: result.homeScore,
+      });
+    });
+    return map;
+  }, [matchesWithEvents]);
+
   const standings = useMemo(
     () => calculateStandings(matchesWithEvents),
     [matchesWithEvents]
@@ -303,7 +331,7 @@ export default function TorneoClient({
             <button
               type="button"
               onClick={() => setActiveTab("results")}
-              className={`rounded-full px-6 py-2 text-sm font-medium transition-colors ${
+              className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-2 text-sm font-medium transition-colors ${
                 activeTab === "results"
                   ? "border border-zinc-200 bg-white text-black shadow-sm dark:border-zinc-500 dark:bg-white dark:text-black"
                   : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
@@ -314,13 +342,13 @@ export default function TorneoClient({
             <button
               type="button"
               onClick={() => setActiveTab("table")}
-              className={`rounded-full px-6 py-2 text-sm font-medium transition-colors ${
+              className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-2 text-sm font-medium transition-colors ${
                 activeTab === "table"
                   ? "border border-zinc-200 bg-white text-black shadow-sm dark:border-zinc-500 dark:bg-white dark:text-black"
                   : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
               }`}
             >
-              Classifica
+              <span>Classifica</span>
             </button>
           </div>
 
@@ -358,13 +386,7 @@ export default function TorneoClient({
                           const awayRoster =
                             membersByTeam.get(match.away) ?? [];
                           const resolvedEvents = match.events ?? [];
-                          const hasStartEvent = resolvedEvents.some(
-                            (event) => event.type === "start"
-                          );
-                          const hasEndEvent = resolvedEvents.some(
-                            (event) => event.type === "end"
-                          );
-                          const isLive = hasStartEvent && !hasEndEvent;
+                          const isLive = isMatchLive(resolvedEvents);
 
                           const toggleExpansion = () => {
                             setExpandedMatchIds((prev) => ({
@@ -396,18 +418,6 @@ export default function TorneoClient({
                                 <td className="px-4 py-3 align-middle text-sm font-semibold text-zinc-600">
                                   <div className="flex flex-col items-start gap-1 text-left md:items-center">
                                     <span>{match.kickoff}</span>
-                                    {isLive ? (
-                                      <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
-                                        <span
-                                          className="relative flex h-2.5 w-2.5"
-                                          aria-hidden
-                                        >
-                                          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
-                                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                                        </span>
-                                        in corso
-                                      </span>
-                                    ) : null}
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 align-top">
@@ -444,11 +454,10 @@ export default function TorneoClient({
                                 </td>
                                 <td className="px-4 py-3 align-middle text-center text-lg font-semibold text-black">
                                   <div className="flex items-center justify-center gap-3">
-                                    <span>
-                                      {hasResult
-                                        ? `${match.homeScore} - ${match.awayScore}`
-                                        : "-"}
-                                    </span>
+                                    <MatchResult
+                                      match={match}
+                                      isLive={isLive}
+                                    />
                                   </div>
                                 </td>
                               </tr>
@@ -574,9 +583,35 @@ export default function TorneoClient({
             </div>
           )}
 
-          {activeTab === "table" && <Standings standings={standings} />}
+          {activeTab === "table" && (
+            <Standings
+              standings={standings}
+              liveScoresByTeam={liveScoresByTeam}
+            />
+          )}
         </section>
       </div>
     </main>
   );
+}
+
+function MatchResult(props: { match: CalendarMatch; isLive: boolean }) {
+  const { match } = props;
+  const hasResult =
+    match.homeScore !== undefined && match.awayScore !== undefined;
+  if (props.isLive && hasResult) {
+    return (
+      <span className="flex items-center gap-2 text-emerald-600">
+        <span>{`${match.homeScore} - ${match.awayScore}`}</span>
+        <span className="relative flex h-2.5 w-2.5" aria-hidden>
+          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+        </span>
+      </span>
+    );
+  } else {
+    return (
+      <span>{hasResult ? `${match.homeScore} - ${match.awayScore}` : "-"}</span>
+    );
+  }
 }

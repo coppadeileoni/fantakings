@@ -2,11 +2,14 @@ import { getLogoByTeamName } from "@/app/utils/functions";
 import { Standing } from "@/app/utils/types";
 import Image from "next/image";
 
+type LiveScoreMap = Map<string, { goalsFor: number; goalsAgainst: number }>;
+
 type StandingProps = {
   standings: Standing[];
+  liveScoresByTeam?: LiveScoreMap;
 };
 
-export function Standings({ standings }: StandingProps) {
+export function Standings({ standings, liveScoresByTeam }: StandingProps) {
   return (
     <div className="mt-10">
       <div className="overflow-x-auto rounded-2xl border border-zinc-200 shadow-sm dark:border-zinc-300">
@@ -28,6 +31,7 @@ export function Standings({ standings }: StandingProps) {
             {standings.map((team, index) => {
               const goalDiff = team.goalsFor - team.goalsAgainst;
               const logoSrc = getLogoByTeamName(team.team);
+              const liveScore = liveScoresByTeam?.get(team.team);
 
               return (
                 <tr
@@ -38,21 +42,37 @@ export function Standings({ standings }: StandingProps) {
                 >
                   <td className="w-64 px-4 py-3 text-zinc-800">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-zinc-500">
-                        {index + 1}.
-                      </span>
-                      {logoSrc ? (
-                        <Image
-                          src={logoSrc}
-                          alt={`Logo ${team.team}`}
-                          width={36}
-                          height={36}
-                          className="h-9 w-9 rounded-full object-contain"
-                        />
+                      <div className="flex flex-1 items-center gap-3">
+                        <span className="text-sm font-semibold text-zinc-500">
+                          {index + 1}.
+                        </span>
+                        {logoSrc ? (
+                          <Image
+                            src={logoSrc}
+                            alt={`Logo ${team.team}`}
+                            width={36}
+                            height={36}
+                            className="h-9 w-9 rounded-full object-contain"
+                          />
+                        ) : null}
+                        <span className="font-medium text-zinc-800">
+                          {team.team}
+                        </span>
+                      </div>
+                      {liveScore ? (
+                        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-600">
+                          <span
+                            className="relative flex h-2.5 w-2.5"
+                            aria-hidden
+                          >
+                            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
+                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                          </span>
+                          <span>
+                            {liveScore.goalsFor} - {liveScore.goalsAgainst}
+                          </span>
+                        </span>
                       ) : null}
-                      <span className="font-medium text-zinc-800">
-                        {team.team}
-                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center text-base font-semibold text-black">
