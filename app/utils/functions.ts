@@ -8,7 +8,7 @@ export function getAllMembersFromTeam(teamName: string) {
 }
 
 export function calculateResult(
-    match: Match
+    match: Match,
 ): { homeScore: number; awayScore: number; isInProgress: boolean } | undefined {
     if (match.events && match.events!.length > 0) {
         let homeScore = 0;
@@ -21,17 +21,18 @@ export function calculateResult(
         );
 
         match.events.forEach((event) => {
+            const goalValue = event.type === "goal" ? (event.from === "double" ? 2 : 1) : 0;
             if (event.type === "goal" && event.from !== "ownGoal") {
                 if (homeMembers.includes(event.member)) {
-                    homeScore += 1;
+                    homeScore += goalValue;
                 } else if (awayMembers.includes(event.member)) {
-                    awayScore += 1;
+                    awayScore += goalValue;
                 }
             } else if (event.type === "goal" && event.from === "ownGoal") {
                 if (homeMembers.includes(event.member)) {
-                    awayScore += 1;
+                    awayScore += goalValue;
                 } else if (awayMembers.includes(event.member)) {
-                    homeScore += 1;
+                    homeScore += goalValue;
                 }
             }
         });
@@ -140,25 +141,35 @@ export function getLogoByTeamName(name: string) {
 }
 
 // Calculate player points based on match events and using calculateBonusByEvent
-export function calculatePlayerPoints(): Map<string, number> {
+export function calculatePlayerPoints(
+    eventsByMatch?: Record<string, MatchEvent[]>
+): Map<string, number> {
     const playerPoints: Map<string, number> = new Map();
 
     MATCHES.forEach((match) => {
+        const events = eventsByMatch?.[match.id] ?? match.events ?? [];
 
-        match.events?.filter((e) => "member" in e).forEach((event) => {
-            const isPres = MEMBERS.find(
-                (member) => member.name === event.member && (member.team === match.homeTeam || member.team === match.awayTeam)
-            )?.role === "pres";
+        events
+            .filter((event): event is MatchEvent & { member: string } => "member" in event)
+            .forEach((event) => {
+                const participatingMember = MEMBERS.find(
+                    (member) =>
+                        member.name === event.member &&
+                        (member.team === match.homeTeam || member.team === match.awayTeam)
+                );
 
-            const bonus = calculateBonusByEvent(event, isPres);
-            const key = `${event.member}$${match.homeTeam}`; // Unique key per member and team
+                if (!participatingMember) {
+                    return;
+                }
 
-            if (!playerPoints.has(key)) {
-                playerPoints.set(key, 0);
-            }
+                const bonus = calculateBonusByEvent(
+                    event,
+                    participatingMember.role === "pres"
+                );
+                const key = `${event.member}$${participatingMember.team}`; // Unique key per member and team
 
-            playerPoints.set(key, playerPoints.get(key)! + bonus);
-        });
+                playerPoints.set(key, (playerPoints.get(key) ?? 0) + bonus);
+            });
     });
 
     return playerPoints;

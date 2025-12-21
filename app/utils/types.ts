@@ -13,6 +13,7 @@ export type Team = {
 
 
 export type Match = {
+    id: string;
     type: MatchType;
     homeTeam: TeamName;
     awayTeam: TeamName;
@@ -73,7 +74,7 @@ type EndEvent = {
 
 type GoalEvent = {
     type: "goal";
-    from: "activePlay" | "penalty" | "shotout" | "ownGoal";
+    from: "activePlay" | "penalty" | "shotout" | "ownGoal" | "double";
     member: string;
 };
 

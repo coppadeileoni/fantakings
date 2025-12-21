@@ -1,5 +1,9 @@
 import { FANTA_ROSTER } from "../data/roster";
 import { calculatePlayerPoints } from "../utils/functions";
+import { fetchAllMatchEvents } from "../utils/events-store";
+import type { MatchEvent } from "../utils/types";
+
+export const revalidate = 0;
 
 type FantasyStanding = {
   manager: string;
@@ -12,34 +16,49 @@ type FantasyStanding = {
   }[];
 };
 
-const memberPoints = calculatePlayerPoints();
-
-const fantasyStandings: FantasyStanding[] = FANTA_ROSTER.map((roster) => {
-  const breakdown = roster.players.map((player) => {
-    const points = memberPoints.get(`${player.member}$${player.team}`) ?? 0;
-    return {
-      member: player.member,
-      team: player.team,
-      points,
-    };
-  });
-
-  const totalPoints = breakdown.reduce((sum, entry) => sum + entry.points, 0);
-
-  return {
-    manager: roster.fullname,
-    teamName: roster.name,
-    totalPoints,
-    breakdown,
-  };
-}).sort((a, b) => {
-  if (b.totalPoints !== a.totalPoints) {
-    return b.totalPoints - a.totalPoints;
+async function loadEvents(): Promise<Record<string, MatchEvent[]>> {
+  try {
+    return await fetchAllMatchEvents();
+  } catch (error) {
+    console.error("Unable to preload match events", error);
+    return {};
   }
-  return a.teamName.localeCompare(b.teamName);
-});
+}
 
-export default function ClassificaPage() {
+function buildFantasyStandings(
+  memberPoints: Map<string, number>
+): FantasyStanding[] {
+  return FANTA_ROSTER.map((roster) => {
+    const breakdown = roster.players.map((player) => {
+      const points = memberPoints.get(`${player.member}$${player.team}`) ?? 0;
+      return {
+        member: player.member,
+        team: player.team,
+        points,
+      };
+    });
+
+    const totalPoints = breakdown.reduce((sum, entry) => sum + entry.points, 0);
+
+    return {
+      manager: roster.fullname,
+      teamName: roster.name,
+      totalPoints,
+      breakdown,
+    };
+  }).sort((a, b) => {
+    if (b.totalPoints !== a.totalPoints) {
+      return b.totalPoints - a.totalPoints;
+    }
+    return a.teamName.localeCompare(b.teamName);
+  });
+}
+
+export default async function ClassificaPage() {
+  const eventsByMatch = await loadEvents();
+  const memberPoints = calculatePlayerPoints(eventsByMatch);
+  const fantasyStandings = buildFantasyStandings(memberPoints);
+
   return (
     <main className="flex min-h-screen flex-col items-center px-6 py-16 font-sans text-black">
       <div className="max-w-3xl space-y-6 text-center">

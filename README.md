@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Fantakings dashboard
 
-## Getting Started
+Next.js App Router project that displays fixtures, standings and special awards for the Fantakings tournament. UI is Tailwind powered and uses Redis to store live match events.
 
-First, run the development server:
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+# install dependencies
+bun install
+
+# start dev server on http://localhost:3000
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a `.env.local` with the following keys:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `REDIS_URL` – connection string to the Redis instance that stores match events (e.g. `redis://localhost:6379`).
+- `ADMIN_PASSWORD` – password required to unlock the admin console and to authorize match-event writes.
 
-## Learn More
+## Admin event console
 
-To learn more about Next.js, take a look at the following resources:
+- Visit `/admin` to access the control room UI.
+- Enter the staff password to unlock the panel. The password stays only in the current browser session.
+- Pick a match, choose the event type (goals, cards, hugs, etc.) and fill the contextual fields.
+- Submit the form to append the event to Redis through `POST /api/events/[matchId]`. The timeline on the right refreshes automatically.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API summary
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `GET /api/events/[matchId]` – fetch events for a match from Redis.
+- `POST /api/events/[matchId]` – append a new event (requires `password` + `event` payload).
+- `POST /api/admin/login` – server-side password validation for the admin console.
 
-## Deploy on Vercel
+## Deployment tips
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deploy on any platform that supports Next.js (Vercel recommended). Remember to provide the same `REDIS_URL` and `ADMIN_PASSWORD` values as production environment variables.
