@@ -40,12 +40,6 @@ export default function Home() {
           alt="Coppa dei Leoni"
           className="h-64 w-auto"
         />
-        <a
-          href="/crea-squadra"
-          className="rounded-full bg-black px-6 py-2 text-lg font-semibold text-zinc-50 transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-black dark:hover:bg-zinc-200"
-        >
-          Crea squadra
-        </a>
       </div>
     </div>
   );
