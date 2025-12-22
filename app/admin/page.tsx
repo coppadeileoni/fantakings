@@ -14,6 +14,7 @@ type EventFormKind =
   | "save"
   | "card"
   | "hug"
+  | "exultation"
   | "oneShotBeer"
   | "shotoutVictory";
 
@@ -151,6 +152,11 @@ const EVENT_FORM_CONFIG: Record<
     label: "Abbraccio del direttore",
     description: "I momenti teneri valgono punti extra",
     fields: [{ name: "member", type: "member", label: "Protagonista" }],
+  },
+  exultation: {
+    label: "Esultanza",
+    description: "Festeggia i momenti iconici a bordo campo",
+    fields: [{ name: "member", type: "member", label: "Giocatore" }],
   },
   oneShotBeer: {
     label: "Shottino",
@@ -1068,6 +1074,7 @@ function buildEventPayload(
       };
     }
     case "hug":
+    case "exultation":
     case "oneShotBeer": {
       const resolved = resolveMemberForMatch(
         values,

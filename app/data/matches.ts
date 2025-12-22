@@ -113,5 +113,19 @@ export const MATCHES: Match[] = [
     awayTeam: "FC Tocco",
     date: new Date("2025-12-22T22:00:00"),
   },
+  {
+    id: "match-17",
+    type: { type: "playoff", stage: "semifinals" },
+    homeTeam: "Gli Approvati",
+    awayTeam: "AS Camurria",
+    date: new Date("2025-12-23T19:00:00"),
+  },
+  {
+    id: "match-18",
+    type: { type: "playoff", stage: "semifinals" },
+    homeTeam: "Chinesis Gym & Al Gaia",
+    awayTeam: "FC Beck's",
+    date: new Date("2025-12-23T20:00:00"),
+  },
 ];
 
