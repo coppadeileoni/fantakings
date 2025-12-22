@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MATCHES } from "../data/matches";
 import { MEMBERS } from "../data/members";
-import type { Match, MatchEvent, Member } from "../utils/types";
+import type { Match, MatchEvent, Member, TeamName } from "../utils/types";
 
 type EventFormKind =
   | "start"
@@ -337,7 +337,7 @@ export default function AdminPage() {
       return;
     }
 
-    const build = buildEventPayload(eventType, formValues);
+    const build = buildEventPayload(eventType, formValues, selectedMatch);
     if (!build.ok) {
       setStatusMessage(build.error);
       setStatusVariant("error");
@@ -439,7 +439,7 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen w-full bg-[radial-gradient(circle_at_top,_#140a0b,_#520710)] px-4 py-10 text-white">
+      <div className="min-h-screen w-full bg-[radial-gradient(circle_at_top,#140a0b,#520710)] px-4 py-10 text-white">
         <div className="mx-auto flex min-h-[80vh] w-full max-w-3xl flex-col justify-center rounded-3xl border border-white/15 bg-white/5 p-10 shadow-2xl shadow-black/50 backdrop-blur">
           <p className="text-xs font-semibold uppercase tracking-[0.5em] text-white/60">
             Fantakings Control Room
@@ -480,7 +480,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[radial-gradient(circle_at_top,_#140a0b,_#520710)] px-4 py-10 text-white">
+    <div className="min-h-screen w-full bg-[radial-gradient(circle_at_top,#140a0b,#520710)] px-4 py-10 text-white">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.5em] text-white/60">
@@ -517,14 +517,14 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <section className="rounded-3xl border border-white/15 bg-gradient-to-br from-white/10 to-white/5 p-6 backdrop-blur">
+        <section className="rounded-3xl border border-white/15 bg-linear-to-br from-white/10 to-white/5 p-6 backdrop-blur">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Timeline partita</h2>
             <span className="text-xs uppercase tracking-[0.4em] text-white/50">
               {events.length} eventi
             </span>
           </div>
-          <div className="mt-5 max-h-[360px] space-y-4 overflow-y-auto pr-2">
+          <div className="mt-5 max-h-90 space-y-4 overflow-y-auto pr-2">
             {eventsLoading ? (
               <p className="text-sm text-white/70">Caricamento eventi...</p>
             ) : events.length === 0 ? (
@@ -566,7 +566,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="rounded-[32px] bg-white/95 p-8 text-gray-900 shadow-2xl shadow-black/30">
+        <section className="rounded-4xl bg-white/95 p-8 text-gray-900 shadow-2xl shadow-black/30">
           <form onSubmit={handleSubmitEvent} className="space-y-8">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
@@ -622,11 +622,25 @@ export default function AdminPage() {
                     key={field.name}
                     field={field}
                     value={formValues[field.name] ?? ""}
+                    teamValue={
+                      field.type === "member"
+                        ? formValues[`${field.name}Team`] ?? ""
+                        : undefined
+                    }
                     onChange={(value) =>
                       setFormValues((prev) => ({
                         ...prev,
                         [field.name]: value,
                       }))
+                    }
+                    onTeamChange={
+                      field.type === "member"
+                        ? (team) =>
+                            setFormValues((prev) => ({
+                              ...prev,
+                              [`${field.name}Team`]: team,
+                            }))
+                        : undefined
                     }
                     members={membersForMatch}
                     match={selectedMatch}
@@ -660,35 +674,31 @@ export default function AdminPage() {
 function FieldRenderer({
   field,
   value,
+  teamValue,
   onChange,
+  onTeamChange,
   members,
   match,
 }: {
   field: EventField;
   value: string;
+  teamValue?: string;
   onChange: (value: string) => void;
+  onTeamChange?: (value: string) => void;
   members: Member[];
   match: Match | undefined;
 }) {
   if (field.type === "member") {
     return (
-      <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500">
-          {field.label}
-        </label>
-        <select
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base focus:border-black focus:outline-none"
-        >
-          <option value="">Scegli un tesserato</option>
-          {members.map((member) => (
-            <option key={member.name} value={member.name}>
-              {member.name} · {member.team}
-            </option>
-          ))}
-        </select>
-      </div>
+      <MemberField
+        field={field}
+        value={value}
+        teamValue={teamValue ?? ""}
+        onChange={onChange}
+        onTeamChange={onTeamChange}
+        members={members}
+        match={match}
+      />
     );
   }
 
@@ -757,6 +767,84 @@ function FieldRenderer({
         className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base focus:border-black focus:outline-none"
       />
       {field.helper && <p className="text-xs text-gray-500">{field.helper}</p>}
+    </div>
+  );
+}
+
+function MemberField({
+  field,
+  value,
+  teamValue,
+  onChange,
+  onTeamChange,
+  members,
+  match,
+}: {
+  field: Extract<EventField, { type: "member" }>;
+  value: string;
+  teamValue: string;
+  onChange: (value: string) => void;
+  onTeamChange?: (value: string) => void;
+  members: Member[];
+  match: Match | undefined;
+}) {
+  const datalistId = match
+    ? `member-options-${match.id}`
+    : "member-options-global";
+  const matchTeams = match ? [match.homeTeam, match.awayTeam] : [];
+  const isKnownMember = members.some((member) => member.name === value);
+  const requiresTeamSelection = Boolean(value && match && !isKnownMember);
+
+  useEffect(() => {
+    if (!requiresTeamSelection && teamValue && onTeamChange) {
+      onTeamChange("");
+    }
+  }, [requiresTeamSelection, teamValue, onTeamChange]);
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500">
+        {field.label}
+      </label>
+      <input
+        type="text"
+        list={datalistId}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Scegli o digita un tesserato"
+        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base focus:border-black focus:outline-none"
+      />
+      <datalist id={datalistId}>
+        {members.map((member) => (
+          <option key={member.name} value={member.name}>
+            {member.name} · {member.team}
+          </option>
+        ))}
+      </datalist>
+      <p className="text-xs text-gray-500">
+        Puoi digitare un nome non presente in elenco. Se non è in rosa,
+        seleziona la squadra.
+      </p>
+      {requiresTeamSelection && matchTeams.length > 0 && (
+        <div className="space-y-2">
+          <label className="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500">
+            Squadra del giocatore
+          </label>
+          <select
+            value={teamValue}
+            onChange={(event) => onTeamChange?.(event.target.value)}
+            required
+            className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base focus:border-black focus:outline-none"
+          >
+            <option value="">Scegli la squadra</option>
+            {matchTeams.map((team) => (
+              <option key={team} value={team}>
+                {team}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 }
@@ -858,10 +946,9 @@ function sortMembers(a: Member, b: Member) {
 
 function buildEventPayload(
   kind: EventFormKind,
-  values: FormValues
+  values: FormValues,
+  match: Match | undefined
 ): EventBuildResult {
-  const member = values.member?.trim();
-
   switch (kind) {
     case "start":
     case "end": {
@@ -875,50 +962,97 @@ function buildEventPayload(
       return { ok: true, event: { type: kind, when: iso } };
     }
     case "goal": {
-      if (!member) {
-        return { ok: false, error: "Seleziona il marcatore" };
+      const resolved = resolveMemberForMatch(
+        values,
+        match,
+        "Seleziona il marcatore"
+      );
+      if (!resolved.ok) {
+        return resolved;
       }
       if (!values.from) {
         return { ok: false, error: "Scegli l'origine del gol" };
       }
       return {
         ok: true,
-        event: { type: "goal", member, from: values.from },
+        event: {
+          type: "goal",
+          member: resolved.member,
+          team: resolved.team,
+          from: values.from,
+        },
       };
     }
     case "noGoal": {
-      if (!member) {
-        return { ok: false, error: "Seleziona il tiratore" };
+      const resolved = resolveMemberForMatch(
+        values,
+        match,
+        "Seleziona il tiratore"
+      );
+      if (!resolved.ok) {
+        return resolved;
       }
       if (!values.from) {
         return { ok: false, error: "Scegli la situazione" };
       }
       return {
         ok: true,
-        event: { type: "noGoal", member, from: values.from },
+        event: {
+          type: "noGoal",
+          member: resolved.member,
+          team: resolved.team,
+          from: values.from,
+        },
       };
     }
     case "save": {
-      if (!member) {
-        return { ok: false, error: "Seleziona il portiere" };
+      const resolved = resolveMemberForMatch(
+        values,
+        match,
+        "Seleziona il portiere"
+      );
+      if (!resolved.ok) {
+        return resolved;
       }
       if (!values.from) {
         return { ok: false, error: "Scegli la situazione" };
       }
       return {
         ok: true,
-        event: { type: "save", member, from: values.from },
+        event: {
+          type: "save",
+          member: resolved.member,
+          team: resolved.team,
+          from: values.from,
+        },
       };
     }
     case "goalReceived": {
-      if (!member) {
-        return { ok: false, error: "Serve il portiere colpito" };
+      const resolved = resolveMemberForMatch(
+        values,
+        match,
+        "Serve il portiere colpito"
+      );
+      if (!resolved.ok) {
+        return resolved;
       }
-      return { ok: true, event: { type: "goalReceived", member } };
+      return {
+        ok: true,
+        event: {
+          type: "goalReceived",
+          member: resolved.member,
+          team: resolved.team,
+        },
+      };
     }
     case "card": {
-      if (!member) {
-        return { ok: false, error: "Seleziona il giocatore" };
+      const resolved = resolveMemberForMatch(
+        values,
+        match,
+        "Seleziona il giocatore"
+      );
+      if (!resolved.ok) {
+        return resolved;
       }
       if (!values.cardType) {
         return { ok: false, error: "Scegli il cartellino" };
@@ -927,17 +1061,26 @@ function buildEventPayload(
         ok: true,
         event: {
           type: "card",
-          member,
+          member: resolved.member,
+          team: resolved.team,
           cardType: values.cardType as "yellow" | "red",
         },
       };
     }
     case "hug":
     case "oneShotBeer": {
-      if (!member) {
-        return { ok: false, error: "Scegli il protagonista" };
+      const resolved = resolveMemberForMatch(
+        values,
+        match,
+        "Scegli il protagonista"
+      );
+      if (!resolved.ok) {
+        return resolved;
       }
-      return { ok: true, event: { type: kind, member } };
+      return {
+        ok: true,
+        event: { type: kind, member: resolved.member, team: resolved.team },
+      };
     }
     case "shotoutVictory": {
       const homeScore = parseShootoutScore(values.homeScore);
@@ -959,6 +1102,71 @@ function buildEventPayload(
     default:
       return { ok: false, error: "Tipo di evento non supportato" };
   }
+}
+
+type ResolvedMemberResult =
+  | { ok: true; member: string; team: TeamName }
+  | { ok: false; error: string };
+
+function resolveMemberForMatch(
+  values: FormValues,
+  match: Match | undefined,
+  missingMemberError: string
+): ResolvedMemberResult {
+  const member = values.member?.trim();
+
+  if (!member) {
+    return { ok: false, error: missingMemberError };
+  }
+
+  if (!match) {
+    return { ok: false, error: "Partita non valida" };
+  }
+
+  const rosterEntry = MEMBERS.find(
+    (candidate) =>
+      candidate.name === member &&
+      (candidate.team === match.homeTeam || candidate.team === match.awayTeam)
+  );
+
+  if (rosterEntry) {
+    return { ok: true, member, team: rosterEntry.team };
+  }
+
+  const selectedTeam = resolveCustomTeam(values.memberTeam, match);
+
+  if (!selectedTeam) {
+    return {
+      ok: false,
+      error: "Seleziona la squadra del giocatore inserito",
+    };
+  }
+
+  return { ok: true, member, team: selectedTeam };
+}
+
+function resolveCustomTeam(
+  rawValue: string | undefined,
+  match: Match
+): TeamName | null {
+  if (!rawValue) {
+    return null;
+  }
+
+  const normalized = rawValue.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === match.homeTeam) {
+    return match.homeTeam;
+  }
+
+  if (normalized === match.awayTeam) {
+    return match.awayTeam;
+  }
+
+  return null;
 }
 
 function parseShootoutScore(raw?: string) {

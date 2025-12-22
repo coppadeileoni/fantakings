@@ -1,10 +1,24 @@
 import { MATCHES } from "../data/matches";
 import { MEMBERS } from "../data/members";
 import { TEAMS } from "../data/teams";
-import { Match, MatchEvent, Standing } from "./types";
+import { Match, MatchEvent, Member, Standing } from "./types";
 
-export function getAllMembersFromTeam(teamName: string) {
-    return MEMBERS.filter((member) => member.team === teamName);
+export function getAllMembersFromTeam(teamName: string, event: MatchEvent[]) {
+    const fromMembers = MEMBERS.filter((member) => member.team === teamName);
+    const eventMembers: Member[] = event?.map((e) => {
+        if ("team" in e && e.team === teamName && "member" in e) {
+            return {
+                name: e.member,
+                team: teamName,
+                role: "player",
+            } as Member;
+        } else {
+            return null;
+        }
+    }).filter((e) => e !== null) ?? [];
+    return [...fromMembers, ...eventMembers].filter(
+        (member, index, arr) => arr.findIndex((m) => m.name === member.name) === index
+    );
 }
 
 export function calculateResult(
@@ -13,10 +27,10 @@ export function calculateResult(
     if (match.events && match.events!.length > 0) {
         let homeScore = 0;
         let awayScore = 0;
-        const homeMembers = getAllMembersFromTeam(match.homeTeam).map(
+        const homeMembers = getAllMembersFromTeam(match.homeTeam, match.events).map(
             (member) => member.name
         );
-        const awayMembers = getAllMembersFromTeam(match.awayTeam).map(
+        const awayMembers = getAllMembersFromTeam(match.awayTeam, match.events).map(
             (member) => member.name
         );
 
@@ -180,14 +194,15 @@ export function calculatePlayerPoints(
         events
             .filter((event): event is MatchEvent & { member: string } => "member" in event)
             .forEach((event) => {
-                const participatingMember = MEMBERS.find(
-                    (member) =>
-                        member.name === event.member &&
-                        (member.team === match.homeTeam || member.team === match.awayTeam)
-                );
+                const team = "team" in event ? event.team : MEMBERS.find((m) => m.name === event.member)?.team;
+                const role = MEMBERS.find((m) => m.name === event.member)?.role ?? "player";
 
-                if (!participatingMember) {
-                    return;
+                if (!team) return; // Skip if team is not found
+
+                const participatingMember = {
+                    name: event.member,
+                    team: team,
+                    role: role,
                 }
 
                 const bonus = calculateBonusByEvent(

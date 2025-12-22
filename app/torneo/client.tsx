@@ -186,14 +186,6 @@ export default function TorneoClient({
 
   const eventsByMatch = initialEventsByMatch;
 
-  const membersByTeam = useMemo(() => {
-    const map = new Map<string, Member[]>();
-    TEAMS.forEach((team) => {
-      map.set(team.name, sortRoster(getAllMembersFromTeam(team.name)));
-    });
-    return map;
-  }, []);
-
   const matchesWithEvents = useMemo(() => {
     return MATCHES.map((match) => {
       const events = eventsByMatch[match.id];
@@ -414,16 +406,17 @@ export default function TorneoClient({
                       </thead>
                       <tbody>
                         {day.matches.map((match) => {
-                          const hasResult =
-                            match.homeScore !== undefined &&
-                            match.awayScore !== undefined;
                           const isExpanded = Boolean(
                             expandedMatchIds[match.id]
                           );
-                          const homeRoster =
-                            membersByTeam.get(match.home) ?? [];
-                          const awayRoster =
-                            membersByTeam.get(match.away) ?? [];
+                          const homeRoster = getAllMembersFromTeam(
+                            match.home,
+                            match.events ?? []
+                          );
+                          const awayRoster = getAllMembersFromTeam(
+                            match.away,
+                            match.events ?? []
+                          );
                           const resolvedEvents = match.events ?? [];
                           const isLive = isMatchLive(resolvedEvents);
 

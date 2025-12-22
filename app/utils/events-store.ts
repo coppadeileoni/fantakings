@@ -1,5 +1,5 @@
 import { createClient } from "redis";
-import type { Match, MatchEvent } from "./types";
+import type { Match, MatchEvent, Member, TeamName } from "./types";
 import { MATCHES } from "../data/matches";
 import { MEMBERS } from "../data/members";
 
@@ -37,11 +37,15 @@ export function getMatch(matchId: string): Match | undefined {
     return MATCH_INDEX.get(matchId);
 }
 
-export function getRosterForMatch(match: Match): string[] {
+function getRosterEntriesForMatch(match: Match): Member[] {
     return MEMBERS.filter(
         (member) =>
             member.team === match.homeTeam || member.team === match.awayTeam
-    ).map((member) => member.name);
+    );
+}
+
+export function getRosterForMatch(match: Match): string[] {
+    return getRosterEntriesForMatch(match).map((member) => member.name);
 }
 
 function getRedisKey(matchId: string) {
@@ -119,6 +123,66 @@ export function validateMember(
     return allowedMembers.includes(normalized) ? normalized : null;
 }
 
+type MemberResolutionResult =
+    | { ok: true; member: string; team: TeamName }
+    | { ok: false; error: string };
+
+function resolveMemberFromEvent(
+    rawMember: unknown,
+    rawTeam: unknown,
+    match: Match,
+    rosterByName: Map<string, Member>,
+    errorMessage: string
+): MemberResolutionResult {
+    if (typeof rawMember !== "string") {
+        return { ok: false, error: errorMessage };
+    }
+
+    const memberName = rawMember.trim();
+    if (!memberName) {
+        return { ok: false, error: errorMessage };
+    }
+
+    const rosterEntry = rosterByName.get(memberName);
+    if (rosterEntry) {
+        return { ok: true, member: memberName, team: rosterEntry.team };
+    }
+
+    const selectedTeam = resolveTeamForCustomMember(rawTeam, match);
+    if (!selectedTeam) {
+        return {
+            ok: false,
+            error: "Indica la squadra del giocatore inserito",
+        };
+    }
+
+    return { ok: true, member: memberName, team: selectedTeam };
+}
+
+function resolveTeamForCustomMember(
+    rawTeam: unknown,
+    match: Match
+): TeamName | null {
+    if (typeof rawTeam !== "string") {
+        return null;
+    }
+
+    const normalized = rawTeam.trim();
+    if (!normalized) {
+        return null;
+    }
+
+    if (normalized === match.homeTeam) {
+        return match.homeTeam;
+    }
+
+    if (normalized === match.awayTeam) {
+        return match.awayTeam;
+    }
+
+    return null;
+}
+
 export function validateEventPayload(
     rawEvent: unknown,
     match: Match
@@ -127,7 +191,10 @@ export function validateEventPayload(
         return { error: "Evento non valido" };
     }
 
-    const allowedMembers = getRosterForMatch(match);
+    const rosterEntries = getRosterEntriesForMatch(match);
+    const rosterByName = new Map(
+        rosterEntries.map((member) => [member.name, member] as const)
+    );
     const event = rawEvent as Record<string, unknown> & { type?: string };
 
     switch (event.type) {
@@ -146,9 +213,15 @@ export function validateEventPayload(
             return { event: { type: "end", when } };
         }
         case "goal": {
-            const member = validateMember(event.member, allowedMembers);
-            if (!member) {
-                return { error: "Giocatore del gol non valido" };
+            const member = resolveMemberFromEvent(
+                event.member,
+                event.team,
+                match,
+                rosterByName,
+                "Giocatore del gol non valido"
+            );
+            if (!member.ok) {
+                return { error: member.error };
             }
 
             if (
@@ -163,15 +236,22 @@ export function validateEventPayload(
             return {
                 event: {
                     type: "goal",
-                    member,
+                    member: member.member,
+                    team: member.team,
                     from: event.from,
                 },
             };
         }
         case "noGoal": {
-            const member = validateMember(event.member, allowedMembers);
-            if (!member) {
-                return { error: "Giocatore del rigore non valido" };
+            const member = resolveMemberFromEvent(
+                event.member,
+                event.team,
+                match,
+                rosterByName,
+                "Giocatore del rigore non valido"
+            );
+            if (!member.ok) {
+                return { error: member.error };
             }
 
             if (event.from !== "penalty" && event.from !== "shotout") {
@@ -181,23 +261,38 @@ export function validateEventPayload(
             return {
                 event: {
                     type: "noGoal",
-                    member,
+                    member: member.member,
+                    team: member.team,
                     from: event.from,
                 },
             };
         }
         case "goalReceived": {
-            const member = validateMember(event.member, allowedMembers);
-            if (!member) {
-                return { error: "Portiere non valido" };
+            const member = resolveMemberFromEvent(
+                event.member,
+                event.team,
+                match,
+                rosterByName,
+                "Portiere non valido"
+            );
+            if (!member.ok) {
+                return { error: member.error };
             }
 
-            return { event: { type: "goalReceived", member } };
+            return {
+                event: { type: "goalReceived", member: member.member, team: member.team },
+            };
         }
         case "save": {
-            const member = validateMember(event.member, allowedMembers);
-            if (!member) {
-                return { error: "Portiere non valido" };
+            const member = resolveMemberFromEvent(
+                event.member,
+                event.team,
+                match,
+                rosterByName,
+                "Portiere non valido"
+            );
+            if (!member.ok) {
+                return { error: member.error };
             }
 
             if (event.from !== "penalty" && event.from !== "shotout") {
@@ -207,15 +302,22 @@ export function validateEventPayload(
             return {
                 event: {
                     type: "save",
-                    member,
+                    member: member.member,
+                    team: member.team,
                     from: event.from,
                 },
             };
         }
         case "card": {
-            const member = validateMember(event.member, allowedMembers);
-            if (!member) {
-                return { error: "Giocatore non valido" };
+            const member = resolveMemberFromEvent(
+                event.member,
+                event.team,
+                match,
+                rosterByName,
+                "Giocatore non valido"
+            );
+            if (!member.ok) {
+                return { error: member.error };
             }
 
             if (event.cardType !== "yellow" && event.cardType !== "red") {
@@ -225,19 +327,32 @@ export function validateEventPayload(
             return {
                 event: {
                     type: "card",
-                    member,
+                    member: member.member,
+                    team: member.team,
                     cardType: event.cardType,
                 },
             };
         }
         case "hug":
         case "oneShotBeer": {
-            const member = validateMember(event.member, allowedMembers);
-            if (!member) {
-                return { error: "Membro non valido" };
+            const member = resolveMemberFromEvent(
+                event.member,
+                event.team,
+                match,
+                rosterByName,
+                "Membro non valido"
+            );
+            if (!member.ok) {
+                return { error: member.error };
             }
 
-            return { event: { type: event.type, member } as MatchEvent };
+            return {
+                event: {
+                    type: event.type,
+                    member: member.member,
+                    team: member.team,
+                } as MatchEvent,
+            };
         }
         case "shotoutVictory": {
             const homeScore = Number(event.homeScore);

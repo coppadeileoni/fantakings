@@ -61,6 +61,7 @@ type CardEvent = {
     type: "card";
     member: string;
     cardType: "yellow" | "red";
+    team?: TeamName;
 };
 
 type ShotoutVictoryEvent = {
@@ -84,36 +85,43 @@ type GoalEvent = {
     type: "goal";
     from: "activePlay" | "penalty" | "shotout" | "ownGoal" | "double";
     member: string;
+    team?: TeamName;
 };
 
 type NoGoalEvent = {
     type: "noGoal";
     from: "penalty" | "shotout";
     member: string;
+    team?: TeamName;
 };
 
 type GoalReceivedEvent = {
     type: "goalReceived";
     member: string;
+    team?: TeamName;
 };
 
 type SaveEvent = {
     type: "save";
     from: "penalty" | "shotout";
     member: string;
+    team?: TeamName;
 };
 
 type DirectorHugEvent = {
     type: "hug";
     member: string;
+    team?: TeamName;
 };
 
 type ExultationEvent = {
     type: "exultation";
     member: string;
+    team?: TeamName;
 };
 
 type OneShotBeerEvent = {
     type: "oneShotBeer";
     member: string;
+    team?: TeamName;
 };
