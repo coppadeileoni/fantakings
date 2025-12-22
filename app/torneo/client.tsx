@@ -641,19 +641,36 @@ function MatchResult(props: { match: CalendarMatch; isLive: boolean }) {
   const { match } = props;
   const hasResult =
     match.homeScore !== undefined && match.awayScore !== undefined;
-  if (props.isLive && hasResult) {
-    return (
-      <span className="flex items-center gap-2 text-emerald-600">
-        <span>{`${match.homeScore} - ${match.awayScore}`}</span>
-        <span className="relative flex h-2.5 w-2.5" aria-hidden>
-          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+  const shotoutVictory = match.events?.find(
+    (event): event is MatchEvent & { type: "shotoutVictory" } =>
+      event.type === "shotoutVictory"
+  );
+  const shotoutResult =
+    typeof shotoutVictory?.homeScore === "number" &&
+    typeof shotoutVictory?.awayScore === "number"
+      ? `${shotoutVictory.homeScore} - ${shotoutVictory.awayScore}`
+      : null;
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      {props.isLive && hasResult ? (
+        <span className="flex items-center gap-2 text-emerald-600">
+          <span>{`${match.homeScore} - ${match.awayScore}`}</span>
+          <span className="relative flex h-2.5 w-2.5" aria-hidden>
+            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+          </span>
         </span>
-      </span>
-    );
-  } else {
-    return (
-      <span>{hasResult ? `${match.homeScore} - ${match.awayScore}` : "-"}</span>
-    );
-  }
+      ) : (
+        <span>
+          {hasResult ? `${match.homeScore} - ${match.awayScore}` : "-"}
+        </span>
+      )}
+      {shotoutResult ? (
+        <span className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          ({shotoutResult})
+        </span>
+      ) : null}
+    </div>
+  );
 }

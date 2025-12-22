@@ -14,8 +14,8 @@ type EventFormKind =
   | "save"
   | "card"
   | "hug"
-  | "exultation"
-  | "oneShotBeer";
+  | "oneShotBeer"
+  | "shotoutVictory";
 
 type SelectOption = {
   value: string;
@@ -26,7 +26,13 @@ type EventField =
   | { name: "member"; type: "member"; label: string }
   | { name: "from"; type: "select"; label: string; options: SelectOption[] }
   | { name: "cardType"; type: "select"; label: string; options: SelectOption[] }
-  | { name: "when"; type: "datetime"; label: string; helper?: string };
+  | { name: "when"; type: "datetime"; label: string; helper?: string }
+  | {
+      name: "homeScore" | "awayScore";
+      type: "number";
+      label: string;
+      helper?: string;
+    };
 
 type FormValues = Partial<Record<string, string>>;
 
@@ -146,15 +152,28 @@ const EVENT_FORM_CONFIG: Record<
     description: "I momenti teneri valgono punti extra",
     fields: [{ name: "member", type: "member", label: "Protagonista" }],
   },
-  exultation: {
-    label: "Esultanza iconica",
-    description: "Dediche e show sotto la curva",
-    fields: [{ name: "member", type: "member", label: "Protagonista" }],
-  },
   oneShotBeer: {
     label: "Shottino",
     description: "Per gli eroi del terzo tempo",
     fields: [{ name: "member", type: "member", label: "Sfidadore" }],
+  },
+  shotoutVictory: {
+    label: "Shotout vinto",
+    description: "Assegna il punto extra dopo i rigori",
+    fields: [
+      {
+        name: "homeScore",
+        type: "number",
+        label: "Gol casa ai rigori",
+        helper: "Totale segnato dalla squadra di casa",
+      },
+      {
+        name: "awayScore",
+        type: "number",
+        label: "Gol ospiti ai rigori",
+        helper: "Totale segnato dalla squadra in trasferta",
+      },
+    ],
   },
 };
 
@@ -610,6 +629,7 @@ export default function AdminPage() {
                       }))
                     }
                     members={membersForMatch}
+                    match={selectedMatch}
                   />
                 ))}
               </div>
@@ -642,11 +662,13 @@ function FieldRenderer({
   value,
   onChange,
   members,
+  match,
 }: {
   field: EventField;
   value: string;
   onChange: (value: string) => void;
   members: Member[];
+  match: Match | undefined;
 }) {
   if (field.type === "member") {
     return (
@@ -666,6 +688,37 @@ function FieldRenderer({
             </option>
           ))}
         </select>
+      </div>
+    );
+  }
+
+  if (field.type === "number") {
+    const labelSuffix =
+      field.name === "homeScore"
+        ? match?.homeTeam
+        : field.name === "awayScore"
+        ? match?.awayTeam
+        : undefined;
+    const resolvedLabel = labelSuffix
+      ? `${field.label} (${labelSuffix})`
+      : field.label;
+
+    return (
+      <div className="space-y-2">
+        <label className="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500">
+          {resolvedLabel}
+        </label>
+        <input
+          type="number"
+          min={0}
+          step={1}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base focus:border-black focus:outline-none"
+        />
+        {field.helper && (
+          <p className="text-xs text-gray-500">{field.helper}</p>
+        )}
       </div>
     );
   }
@@ -766,6 +819,8 @@ function summarizeEvent(event: MatchEvent) {
       return `${event.member} in estasi`;
     case "oneShotBeer":
       return `${event.member} shot completato`;
+    case "shotoutVictory":
+      return `Rigori ${event.homeScore} - ${event.awayScore}`;
     case "start":
       return "Inizio ufficiale";
     case "end":
@@ -878,16 +933,50 @@ function buildEventPayload(
       };
     }
     case "hug":
-    case "exultation":
     case "oneShotBeer": {
       if (!member) {
         return { ok: false, error: "Scegli il protagonista" };
       }
       return { ok: true, event: { type: kind, member } };
     }
+    case "shotoutVictory": {
+      const homeScore = parseShootoutScore(values.homeScore);
+      const awayScore = parseShootoutScore(values.awayScore);
+
+      if (homeScore === null || awayScore === null) {
+        return { ok: false, error: "Inserisci i gol ai rigori" };
+      }
+
+      if (homeScore === awayScore) {
+        return { ok: false, error: "Serve un vincitore ai rigori" };
+      }
+
+      return {
+        ok: true,
+        event: { type: "shotoutVictory", homeScore, awayScore },
+      };
+    }
     default:
       return { ok: false, error: "Tipo di evento non supportato" };
   }
+}
+
+function parseShootoutScore(raw?: string) {
+  if (typeof raw !== "string") {
+    return null;
+  }
+
+  const normalized = raw.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const value = Number(normalized);
+  if (!Number.isFinite(value) || value < 0 || !Number.isInteger(value)) {
+    return null;
+  }
+
+  return value;
 }
 
 function toIso(value: string) {

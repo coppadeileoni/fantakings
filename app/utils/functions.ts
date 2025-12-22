@@ -111,6 +111,34 @@ export function calculateStandings(matches: Match[]): Standing[] {
             homeStanding.points += 1;
             awayStanding.points += 1;
         }
+
+        const shotoutVictory = match.events?.find(
+            (event): event is MatchEvent & { type: "shotoutVictory" } =>
+                event.type === "shotoutVictory"
+        );
+
+        if (shotoutVictory && homeScore === awayScore) {
+            let winnerStanding: Standing | undefined;
+
+            if (
+                typeof shotoutVictory.homeScore === "number" &&
+                typeof shotoutVictory.awayScore === "number"
+            ) {
+                if (shotoutVictory.homeScore > shotoutVictory.awayScore) {
+                    winnerStanding = homeStanding;
+                } else if (shotoutVictory.homeScore < shotoutVictory.awayScore) {
+                    winnerStanding = awayStanding;
+                }
+            }
+
+            if (!winnerStanding && "winningTeam" in shotoutVictory && shotoutVictory.winningTeam) {
+                winnerStanding = standingsMap[shotoutVictory.winningTeam];
+            }
+
+            if (winnerStanding) {
+                winnerStanding.points += 1; // bonus point for shootout victory
+            }
+        }
     });
 
     const standings = Object.values(standingsMap);

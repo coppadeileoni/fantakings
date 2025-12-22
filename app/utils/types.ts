@@ -1,4 +1,4 @@
-type TeamName = "AS Camurria" | "Ludopathikos" | "Roxy Bar" | "FC Tocco" | "Chinesis Gym & Al Gaia" | "Zozzons7" | "FC Beck's" | "Armalions" | "Gli Approvati" | "Q.T. I Tacusam" | "Bar Oscar" | "Fanta-Evento";
+export type TeamName = "AS Camurria" | "Ludopathikos" | "Roxy Bar" | "FC Tocco" | "Chinesis Gym & Al Gaia" | "Zozzons7" | "FC Beck's" | "Armalions" | "Gli Approvati" | "Q.T. I Tacusam" | "Bar Oscar" | "Fanta-Evento";
 
 export type Member = {
     name: string;
@@ -55,11 +55,19 @@ export type MatchEvent =
     | OneShotBeerEvent
     | StartEvent
     | EndEvent
+    | ShotoutVictoryEvent
 
 type CardEvent = {
     type: "card";
     member: string;
     cardType: "yellow" | "red";
+};
+
+type ShotoutVictoryEvent = {
+    type: "shotoutVictory";
+    homeScore: number;
+    awayScore: number;
+    winningTeam?: TeamName;
 };
 
 type StartEvent = {

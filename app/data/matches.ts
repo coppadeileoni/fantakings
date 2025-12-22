@@ -85,5 +85,33 @@ export const MATCHES: Match[] = [
     awayTeam: "FC Tocco",
     date: new Date("2025-12-21T22:00:00"),
   },
+  {
+    id: "match-13",
+    type: { type: "playoff", stage: "quarterfinals" },
+    homeTeam: "AS Camurria",
+    awayTeam: "Q.T. I Tacusam",
+    date: new Date("2025-12-22T19:00:00"),
+  },
+  {
+    id: "match-14",
+    type: { type: "playoff", stage: "quarterfinals" },
+    homeTeam: "Fanta-Evento",
+    awayTeam: "FC Beck's",
+    date: new Date("2025-12-22T20:00:00"),
+  },
+  {
+    id: "match-15",
+    type: { type: "playoff", stage: "quarterfinals" },
+    homeTeam: "Ludopathikos",
+    awayTeam: "Gli Approvati",
+    date: new Date("2025-12-22T21:00:00"),
+  },
+  {
+    id: "match-16",
+    type: { type: "playoff", stage: "quarterfinals" },
+    homeTeam: "Chinesis Gym & Al Gaia",
+    awayTeam: "FC Tocco",
+    date: new Date("2025-12-22T22:00:00"),
+  },
 ];
 

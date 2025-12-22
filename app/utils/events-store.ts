@@ -231,7 +231,6 @@ export function validateEventPayload(
             };
         }
         case "hug":
-        case "exultation":
         case "oneShotBeer": {
             const member = validateMember(event.member, allowedMembers);
             if (!member) {
@@ -239,6 +238,30 @@ export function validateEventPayload(
             }
 
             return { event: { type: event.type, member } as MatchEvent };
+        }
+        case "shotoutVictory": {
+            const homeScore = Number(event.homeScore);
+            const awayScore = Number(event.awayScore);
+
+            if (!Number.isFinite(homeScore) || !Number.isInteger(homeScore) || homeScore < 0) {
+                return { error: "Gol rigori casa non valido" };
+            }
+
+            if (!Number.isFinite(awayScore) || !Number.isInteger(awayScore) || awayScore < 0) {
+                return { error: "Gol rigori ospiti non valido" };
+            }
+
+            if (homeScore === awayScore) {
+                return { error: "Lo shotout deve avere un vincitore" };
+            }
+
+            return {
+                event: {
+                    type: "shotoutVictory",
+                    homeScore,
+                    awayScore,
+                },
+            };
         }
         default:
             return { error: "Tipo di evento non supportato" };

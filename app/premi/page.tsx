@@ -26,7 +26,7 @@ export default function PremiPage() {
               decisive e penalizzare errori o comportamenti scorretti.
             </p>
           </div>
-          <ul className="space-y-4">
+          {/* <ul className="space-y-4">
             <li className="space-y-2">
               <h3 className="text-xl font-semibold text-black dark:text-zinc-100">
                 Portieri
@@ -78,7 +78,7 @@ export default function PremiPage() {
             nell&apos;ordine differenza reti, numero di vittorie e gol segnati.
             Eventuali aggiornamenti al regolamento verranno comunicati prima
             dell&apos;inizio della giornata successiva.
-          </p>
+          </p> */}
         </section>
       </div>
     </main>

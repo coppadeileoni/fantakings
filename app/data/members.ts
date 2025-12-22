@@ -88,6 +88,7 @@ export const MEMBERS: Member[] = [
   { name: "Francesco Proto", team: "Gli Approvati", role: "player" },
   { name: "Andrea Gandolfo", team: "Gli Approvati", role: "player" },
   { name: "Federico Drago", team: "Gli Approvati", role: "player" },
+  { name: "Pietro Di Pasqua", team: "Gli Approvati", role: "player" },
   { name: "Benito Roberti", team: "Gli Approvati", role: "player" },
   { name: "Salvatore Marraffino", team: "Gli Approvati", role: "player" },
   { name: "Stefano Barbera", team: "Gli Approvati", role: "player" },
