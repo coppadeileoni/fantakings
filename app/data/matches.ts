@@ -89,7 +89,7 @@ export const MATCHES: Match[] = [
     id: "match-13",
     type: { type: "playoff", stage: "quarterfinals" },
     homeTeam: "AS Camurria",
-    awayTeam: "Q.T. I Tacusam",
+    awayTeam: "Roxy Bar",
     date: new Date("2025-12-22T19:00:00"),
   },
   {
