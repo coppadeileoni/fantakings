@@ -40,7 +40,7 @@ type CalendarDay = {
 const STAGE_LABELS: Record<"quarterfinals" | "semifinals" | "finals", string> =
   {
     quarterfinals: "Quarti di finale",
-    semifinals: "Semifinali",
+    semifinals: "Semifinale",
     finals: "Finale",
   };
 
@@ -194,13 +194,8 @@ export default function TorneoClient({
     return map;
   }, []);
 
-  const regularSeasonMatches = useMemo(
-    () => MATCHES.filter((match) => match.type.type === "regular"),
-    []
-  );
-
   const matchesWithEvents = useMemo(() => {
-    return regularSeasonMatches.map((match) => {
+    return MATCHES.map((match) => {
       const events = eventsByMatch[match.id];
       if (!events || events.length === 0) {
         return match;
@@ -208,7 +203,12 @@ export default function TorneoClient({
       const enriched: Match = { ...match, events };
       return enriched;
     });
-  }, [regularSeasonMatches, eventsByMatch]);
+  }, [eventsByMatch]);
+
+  const regularSeasonMatchesWithEvents = useMemo(
+    () => matchesWithEvents.filter((match) => match.type.type === "regular"),
+    [matchesWithEvents]
+  );
 
   const matchDays = useMemo<CalendarDay[]>(() => {
     const dateFormatter = new Intl.DateTimeFormat("it-IT", {
@@ -310,8 +310,8 @@ export default function TorneoClient({
   }, [matchesWithEvents]);
 
   const standings = useMemo(
-    () => calculateStandings(matchesWithEvents),
-    [matchesWithEvents]
+    () => calculateStandings(regularSeasonMatchesWithEvents),
+    [regularSeasonMatchesWithEvents]
   );
 
   const targetMatchId = useMemo(() => {
