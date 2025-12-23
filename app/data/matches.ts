@@ -127,5 +127,12 @@ export const MATCHES: Match[] = [
     awayTeam: "FC Beck's",
     date: new Date("2025-12-23T20:00:00"),
   },
+  {
+    id: "match-19",
+    type: { type: "playoff", stage: "finals" },
+    homeTeam: "Chinesis Gym & Al Gaia",
+    awayTeam: "AS Camurria",
+    date: new Date("2025-12-23T22:00:00"),
+  },
 ];
 
